@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "Python Basics",
+    "description": "Learn Python fundamentals",
+    "target_date": "2025-12-31",
+    "status": "In Progress"
+  },
+  {
+    "id": 2,
+    "name": "Python Basics",
+    "description": "Learn Python fundamentals",
+    "target_date": "2025-12-31",
+    "status": "Not Started"
+  },
+  {
+    "id": 3,
+    "name": "Python Basics",
+    "description": "Learn Python fundamentals",
+    "target_date": "2025-12-31",
+    "status": "Not Started"
+  }
+]

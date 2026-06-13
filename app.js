@@ -11,8 +11,8 @@ const path = require('path');                 // Path module to handle file path
 // Initialize the Express application
 const app = express();
 
-// Define the port the server will run on
-const PORT = 5000;
+// Define the port the server will run on (override with PORT env, e.g. PORT=5001 npm start)
+const PORT = Number(process.env.PORT) || 5000;
 
 // Define the path to our JSON "database" file
 const DATA_FILE = path.join(__dirname, 'courses.json');
@@ -147,6 +147,7 @@ app.post('/api/courses', (req, res) => {
       description,
       target_date,
       status,
+      created_at: new Date().toISOString(),
     };
     courses.push(newCourse);
     writeCourses(courses);
@@ -173,14 +174,18 @@ app.put('/api/courses/:id', (req, res) => {
       return res.status(404).json({ error: `Course with id ${id} not found` });
     }
 
-    const updates = req.body;
+    const updates = { ...req.body };
+    delete updates.id;
+    delete updates.created_at;
+
     if (updates.status !== undefined && !VALID_STATUSES.includes(updates.status)) {
       return res.status(400).json({
         error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`,
       });
     }
 
-    courses[index] = { ...courses[index], ...updates, id };
+    const existing = courses[index];
+    courses[index] = { ...existing, ...updates, id: existing.id, created_at: existing.created_at };
     writeCourses(courses);
     res.json(courses[index]);
   } catch (error) {
@@ -228,14 +233,32 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// Dashboard (http://localhost:5000/ or /dashboard.html)
+app.get('/', (req, res) => {
+  res.redirect('/dashboard.html');
+});
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ============================================
 // START SERVER
 // ============================================
 
 initializeDataFile();
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('- CodeCraftHub API is starting...');
   console.log(`- Data will be stored in: \`${DATA_FILE}\``);
   console.log(`- API is available at: \`http://localhost:${PORT}\``);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\nPort ${PORT} is already in use (another app or an old "node app.js" is still running).\n` +
+        'Fix: close that terminal, stop the process in Task Manager, or use a different port:\n' +
+        '  PowerShell:  $env:PORT=5001; npm start\n'
+    );
+    process.exit(1);
+  }
+  throw err;
 });

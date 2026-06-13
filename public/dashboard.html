@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CodeCraftHub — Learning Management</title>
+  <title>CodeCraftHub: Your Learning Management Platform</title>
   <style>
     :root {
       --primary: #8B5CF6;
@@ -152,7 +152,7 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      background: #8B5CF6;
       color: #fff;
     }
 
@@ -161,7 +161,7 @@
     }
 
     .btn-success {
-      background: var(--success);
+      background: #F59E0B;
       color: #1a0a00;
     }
 
@@ -170,7 +170,7 @@
     }
 
     .btn-danger {
-      background: var(--danger);
+      background: #EF4444;
       color: #fff;
     }
 
@@ -502,6 +502,13 @@
     </section>
 
     <section class="panel" aria-labelledby="list-heading">
+      <!--
+        Delete button HTML pattern (each course card uses this shape; id passed to handleDelete):
+        <button type="button" class="btn btn-danger" onclick="handleDelete(1)">Remove</button>
+      -->
+      <template id="delete-button-reference">
+        <button type="button" class="btn btn-danger" onclick="handleDelete(0)">Remove</button>
+      </template>
       <div class="courses-head">
         <h2 id="list-heading">Your courses</h2>
         <button type="button" class="btn btn-ghost" id="refresh-btn">Refresh</button>
@@ -533,6 +540,9 @@
         editCreated: document.getElementById("edit-created_at"),
         editCancel: document.getElementById("edit-cancel"),
       };
+
+      /** Last loaded courses (for handleDelete confirm copy). */
+      let coursesCache = [];
 
       let loadingCount = 0;
 
@@ -697,9 +707,7 @@
           delBtn.type = "button";
           delBtn.className = "btn btn-danger";
           delBtn.textContent = "Remove";
-          delBtn.addEventListener("click", function () {
-            removeCourse(c);
-          });
+          delBtn.setAttribute("onclick", "handleDelete(" + Number(c.id) + ")");
 
           actions.appendChild(editBtn);
           actions.appendChild(delBtn);
@@ -713,7 +721,8 @@
         clearMessages();
         try {
           const data = await apiRequest("GET", API_BASE);
-          renderCourses(data);
+          coursesCache = Array.isArray(data) ? data : [];
+          renderCourses(coursesCache);
         } catch (e) {
           showMessage("Could not load courses: " + e.message, "error");
           els.courseList.innerHTML =
@@ -795,13 +804,15 @@
         }
       });
 
-      async function removeCourse(course) {
+      async function handleDelete(courseId) {
         clearMessages();
-        const ok = window.confirm(
-          'Delete "' + (course.name || "this course") + '"? This cannot be undone.'
-        );
+        const course = coursesCache.find(function (x) {
+          return Number(x.id) === Number(courseId);
+        });
+        const name = course && course.name ? course.name : "this course";
+        const ok = window.confirm('Delete "' + name + '"? This cannot be undone.');
         if (!ok) return;
-        const url = API_BASE + "/" + encodeURIComponent(course.id);
+        const url = API_BASE + "/" + encodeURIComponent(courseId);
         try {
           await apiRequest("DELETE", url);
           showMessage("Course removed.", "success");
@@ -810,6 +821,8 @@
           showMessage(e.message, "error");
         }
       }
+
+      window.handleDelete = handleDelete;
 
       els.refreshBtn.addEventListener("click", function () {
         loadCourses();
